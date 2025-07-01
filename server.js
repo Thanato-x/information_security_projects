@@ -3,6 +3,8 @@ require('dotenv').config();
 const express     = require('express');
 const bodyParser  = require('body-parser');
 const cors        = require('cors');
+const mongoose = require('mongoose');
+const helmet = require('helmet');
 
 const apiRoutes         = require('./routes/api.js');
 const fccTestingRoutes  = require('./routes/fcctesting.js');
@@ -10,12 +12,25 @@ const runner            = require('./test-runner');
 
 const app = express();
 
+app.use(helmet());
+app.use(helmet.contentSecurityPolicy({
+  directives: {
+    defaultSrc: ["'self'"],
+    scriptSrc: ["'self'"],
+    styleSrc: ["'self'"]
+  }
+}));
+
 app.use('/public', express.static(process.cwd() + '/public'));
 
 app.use(cors({origin: '*'})); //For FCC testing purposes only
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+mongoose.connect(process.env.DB)
+.then(() => console.log("MongoDB conectado!"))
+.catch(err => console.error("Erro ao conectar ao MongoDB:", err));
 
 //Index page (static HTML)
 app.route('/')
@@ -26,8 +41,8 @@ app.route('/')
 //For FCC testing purposes
 fccTestingRoutes(app);
 
-//Routing for API 
-apiRoutes(app);  
+//Routing for API   
+app.use('/api', apiRoutes);
     
 //404 Not Found Middleware
 app.use(function(req, res, next) {
