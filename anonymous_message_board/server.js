@@ -3,16 +3,36 @@ require('dotenv').config();
 const express     = require('express');
 const bodyParser  = require('body-parser');
 const cors        = require('cors');
+const mongoose = require('mongoose');
+const helmet = require('helmet');
 
 const apiRoutes         = require('./routes/api.js');
 const fccTestingRoutes  = require('./routes/fcctesting.js');
 const runner            = require('./test-runner');
 
+
 const app = express();
+
+app.use(helmet.frameguard({ action: 'sameorigin' }));
+app.use(helmet.dnsPrefetchControl());
+app.use(helmet.referrerPolicy({ policy: 'same-origin' }));
+/*
+app.use(helmet.contentSecurityPolicy({
+  directives: {
+    defaultSrc: ["'self'"],
+    scriptSrc: ["'self'"],
+    styleSrc: ["'self'"]
+  }
+}));*/
+
+mongoose.connect(process.env.DB).then(() => console.log("MongoDB connected"))
+  .catch(err => console.error(err));
+
 
 app.use('/public', express.static(process.cwd() + '/public'));
 
 app.use(cors({origin: '*'})); //For FCC testing purposes only
+app.options('*', cors());
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -45,6 +65,8 @@ app.use(function(req, res, next) {
     .type('text')
     .send('Not Found');
 });
+
+process.env.NODE_ENV = process.env.NODE_ENV || 'test';
 
 //Start our server and tests!
 const listener = app.listen(process.env.PORT || 3000, function () {
